@@ -1,0 +1,60 @@
+# VMs
+
+Long-lived Ubuntu 24.04 containers used as lightweight VMs: each one runs
+systemd as PID 1, an sshd, its own Docker daemon, and keeps its state on the
+host through bind mounts, so a VM survives being rebuilt from the image.
+
+## Layout
+
+| Path            | Purpose                                                          |
+| --------------- | ---------------------------------------------------------------- |
+| `runner-image/` | The image all VMs share: systemd, sshd, docker-ce, dev tooling    |
+| `scripts/`      | Toolchain installers, mounted read-only at `~/scripts` in each VM |
+| `template/`     | Skeleton copied for each new VM                                   |
+| `create_vm.sh`  | Creates a VM from the template and starts it                      |
+| `vmnet.sh`      | Creates the bridge network the VMs share                          |
+| `<instance>/`   | One directory per VM: `docker-compose.yml` plus its `data/`       |
+
+Instance directories are not tracked — `.gitignore` allowlists only the entries
+above.
+
+## Creating a VM
+
+```sh
+./create_vm.sh my-vm                       # add --cpus / --mem / --ip to override
+cd my-vm && docker compose up -d --build
+```
+
+`create_vm.sh` creates the network if needed, copies the template into `my-vm/`,
+and fills in the container name, hostname and a free address. It does not start
+the VM.
+
+## The shared network
+
+All VMs sit on the `vms_vmnet` bridge (`172.28.1.0/24`, gateway `172.28.1.1`),
+so they reach each other at fixed addresses. Compose treats it as `external`
+because a project declaring only networks is a no-op for `compose up`;
+`vmnet.sh` owns it instead and `create_vm.sh` calls it. Addresses `.2`–`.9` are
+left to Docker's dynamic pool, static assignments start at `.10`. To see what is
+taken:
+
+```sh
+docker network inspect vms_vmnet -f '{{range .Containers}}{{.Name}} {{.IPv4Address}}{{"\n"}}{{end}}'
+```
+
+## Inside a VM
+
+Log in as `ubuntu` (passwordless sudo, member of `docker`) with the key in
+`template/data/home/ubuntu/.ssh/authorized_keys`, then install what you need:
+
+```sh
+~/scripts/install_nodejs.sh     # nvm, node, pnpm
+~/scripts/install_golang.sh     # go + gopls, dlv, goimports, staticcheck, govulncheck
+~/scripts/install_claude.sh
+```
+
+`install_golang.sh` unpacks Go into `/usr/local/go`, which `.profile` only adds
+to `PATH` at login — log in again after the first run to get `go` on your path.
+`/root`, `/usr/local`, `/opt` and `/home` are bind mounts under the instance's
+`data/`, so everything installed there survives `compose down` and an image
+rebuild; anything installed elsewhere in the filesystem does not.

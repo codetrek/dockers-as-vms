@@ -1,0 +1,17 @@
+*
+
+!.gitignore
+!LICENSE
+!README.md
+!create_vm.sh
+!vmnet.sh
+
+!runner-image
+!runner-image/**
+
+!scripts
+!scripts/**
+
+!template
+!template/**
+
