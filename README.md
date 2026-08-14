@@ -11,7 +11,7 @@ host through bind mounts, so a VM survives being rebuilt from the image.
 | `runner-image/` | The image all VMs share: systemd, sshd, docker-ce, dev tooling    |
 | `scripts/`      | Toolchain installers, mounted read-only at `~/scripts` in each VM |
 | `template/`     | Skeleton copied for each new VM                                   |
-| `create_vm.sh`  | Creates a VM from the template and starts it                      |
+| `create_vm.sh`  | Creates a VM from the template                                    |
 | `vmnet.sh`      | Creates the bridge network the VMs share                          |
 | `<instance>/`   | One directory per VM: `docker-compose.yml` plus its `data/`       |
 
@@ -26,8 +26,11 @@ cd my-vm && docker compose up -d --build
 ```
 
 `create_vm.sh` creates the network if needed, copies the template into `my-vm/`,
-and fills in the container name, hostname and a free address. It does not start
-the VM.
+fills in the container name, hostname and a free address, and authorises the
+host's SSH identities (`~/.ssh/id_*.pub`, whichever exist) for the `ubuntu`
+user. With no identity to authorise it offers to run `ssh-keygen` for you; pass
+`--key FILE` — repeatable — to authorise other public keys instead. It does not
+start the VM.
 
 ## The shared network
 
@@ -44,8 +47,9 @@ docker network inspect vms_vmnet -f '{{range .Containers}}{{.Name}} {{.IPv4Addre
 
 ## Inside a VM
 
-Log in as `ubuntu` (passwordless sudo, member of `docker`) with the key in
-`template/data/home/ubuntu/.ssh/authorized_keys`, then install what you need:
+Log in as `ubuntu` (passwordless sudo, member of `docker`) with the key
+`create_vm.sh` authorised in `<instance>/data/home/ubuntu/.ssh/authorized_keys`,
+then install what you need:
 
 ```sh
 ~/scripts/install_nodejs.sh     # nvm, node, pnpm
