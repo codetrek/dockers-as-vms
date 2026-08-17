@@ -30,7 +30,9 @@ fills in the container name, hostname and a free address, and authorises the
 host's SSH identities (`~/.ssh/id_*.pub`, whichever exist) for the `ubuntu`
 user. With no identity to authorise it offers to run `ssh-keygen` for you; pass
 `--key FILE` — repeatable — to authorise other public keys instead. It does not
-start the VM.
+start the VM. A name takes lower-case letters, digits, `-` and `_` and starts
+with a letter or a digit, which is what keeps the directory, the Compose project
+and the VM's volume going by one spelling.
 
 ## The shared network
 

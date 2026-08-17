@@ -7,7 +7,9 @@
 
 set -euo pipefail
 
-cd "$(dirname "$0")"
+# Resolved, so that a symlink to the script elsewhere on $PATH still finds the
+# template and the instances next to the real one.
+cd "$(dirname "$(readlink -f "$0")")"
 
 net=vms_vmnet
 # Docker allocates dynamic addresses from the bottom of the pool, so static
@@ -116,8 +118,26 @@ if [ -z "$name" ]; then
     exit 1
 fi
 
+# Compose names its project after the instance directory, lower-casing it and
+# dropping everything outside [a-z0-9_-] on the way, so any other shape would
+# leave the directory, the container and the `<project>_docker-disk` volume
+# going by two or three different spellings:
+# https://github.com/compose-spec/compose-go/blob/d70c053ec9cbd7180c7881ba769d277f5cfc6fb5/loader/loader.go#L760-L765
+if [[ ! $name =~ ^[a-z0-9][a-z0-9_-]*$ ]]; then
+    echo "$name: a VM name takes lower-case letters, digits, - and _, and starts with a letter or a digit." >&2
+    exit 1
+fi
+
 if [ -e "$name" ]; then
     echo "$name already exists." >&2
+    exit 1
+fi
+
+# An instance named after this directory would take the Compose project name
+# that anything run from the repository root already goes by, mixing the two up
+# in every label and volume name Docker keeps for them.
+if [ "$name" = "$(basename "$PWD")" ]; then
+    echo "$name is this directory's own name; pick another." >&2
     exit 1
 fi
 
