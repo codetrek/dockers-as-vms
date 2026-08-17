@@ -41,7 +41,8 @@ Usage: $0 <name> [--ip ADDR] [--cpus N] [--mem SIZE] [--key FILE]
   --ip ADDR    static address on the shared bridge (default: lowest free host
                address from .${first_host})
   --cpus N     CPU limit, asked for interactively when omitted (default: ${default_cpus})
-  --mem SIZE   memory limit, asked for interactively when omitted (default: ${default_mem})
+  --mem SIZE   memory limit with a unit, e.g. 512m or 8g, asked for
+               interactively when omitted (default: ${default_mem})
   --key FILE   public key to authorise for the ubuntu user, repeatable
                (default: the host's own SSH identities, ~/.ssh/id_*.pub, with
                an offer to generate one when the host has none)
@@ -59,6 +60,21 @@ function ask() {
     fi
 
     echo "${answer:-$default}"
+}
+
+# Docker reads a memory limit carrying no unit as a count of bytes, so `8` asks
+# for eight of them and the container refuses to start ("Minimum memory limit
+# allowed is 6MB"). Compose writes such a value out without a word, which leaves
+# the failure to the first `compose up` long after this script has finished, so
+# the unit is not optional here.
+function valid_mem() {
+    [[ $1 =~ ^[0-9]+(\.[0-9]+)?[kmgtKMGT][iI]?[bB]?$ ]]
+}
+
+# Compose does reject a CPU count that is not a number, but only in the `config`
+# check at the end, by which point the instance directory is already on disk.
+function valid_cpus() {
+    [[ $1 =~ ^[0-9]+(\.[0-9]+)?$ ]]
 }
 
 # Addresses already spoken for: live containers on the bridge, plus the static
@@ -141,6 +157,19 @@ if [ "$name" = "$(basename "$PWD")" ]; then
     exit 1
 fi
 
+# The prompts below re-ask when what they get back makes no sense; what came in
+# on the command line has to be turned away here instead, before any of it ends
+# up in an instance directory.
+if [ -n "$cpus" ] && ! valid_cpus "$cpus"; then
+    echo "--cpus takes a plain number, e.g. 2 or 1.5." >&2
+    exit 1
+fi
+
+if [ -n "$mem" ] && ! valid_mem "$mem"; then
+    echo "--mem takes a size with a unit, e.g. 512m or 8g." >&2
+    exit 1
+fi
+
 if [ ${#keys[@]} -eq 0 ]; then
     mapfile -t keys < <(host_pubkeys)
 fi
@@ -199,13 +228,21 @@ if [ -z "$addr" ]; then
     addr=$(free_addr)
 fi
 
-if [ -z "$cpus" ]; then
+while [ -z "$cpus" ]; do
     cpus=$(ask "CPUs" "$default_cpus")
-fi
+    if ! valid_cpus "$cpus"; then
+        echo "$cpus: a CPU count is a plain number, e.g. 2 or 1.5." >&2
+        cpus=
+    fi
+done
 
-if [ -z "$mem" ]; then
+while [ -z "$mem" ]; do
     mem=$(ask "Memory" "$default_mem")
-fi
+    if ! valid_mem "$mem"; then
+        echo "$mem: a memory limit needs a unit, e.g. 512m or 8g." >&2
+        mem=
+    fi
+done
 
 echo "========== creating $name =========="
 cp -r template "$name"
