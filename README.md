@@ -12,6 +12,7 @@ host through bind mounts, so a VM survives being rebuilt from the image.
 | `scripts/`      | Toolchain installers, mounted read-only at `~/scripts` in each VM |
 | `template/`     | Skeleton copied for each new VM                                   |
 | `create_vm.sh`  | Creates a VM from the template                                    |
+| `delete_vm.sh`  | Deletes a VM and everything it owns                               |
 | `vmnet.sh`      | Creates the bridge network the VMs share                          |
 | `<instance>/`   | One directory per VM: `docker-compose.yml` plus its `data/`       |
 
@@ -33,6 +34,26 @@ user. With no identity to authorise it offers to run `ssh-keygen` for you; pass
 start the VM. A name takes lower-case letters, digits, `-` and `_` and starts
 with a letter or a digit, which is what keeps the directory, the Compose project
 and the VM's volume going by one spelling.
+
+## Deleting a VM
+
+```sh
+./delete_vm.sh my-vm                       # add --yes to skip the confirmation
+```
+
+`delete_vm.sh` takes the container down, removes the `my-vm_docker-disk` volume
+holding the VM's own Docker storage, and deletes `my-vm/` along with everything
+under `data/` — the VM's `/root`, `/home`, `/usr/local` and `/opt`. It lists all
+of that and asks before removing anything; the address goes back into the pool
+afterwards. Parts of `data/` belong to root, so the removal goes through `sudo`.
+What the VMs share — the bridge, the runner image, `scripts/` — is left alone,
+and so is every unrelated container on the host: one counts as this VM's only if
+Compose rooted its project at `my-vm/`, never by going under the same name. Its
+disk volume carries no such mark and is matched by name, which is what still
+finds it once the directory and the container are gone; everything matched is
+listed before the question is asked. A VM whose directory was deleted by hand
+leaves its container and its volume behind, and the same command clears those
+away too.
 
 ## The shared network
 

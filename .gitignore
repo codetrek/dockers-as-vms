@@ -4,6 +4,7 @@
 !LICENSE
 !README.md
 !create_vm.sh
+!delete_vm.sh
 !vmnet.sh
 
 !runner-image
