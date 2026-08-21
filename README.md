@@ -42,9 +42,9 @@ out again, since what is in the file is what ssh will do.
 ## Creating a VM
 
 ```sh
-./docker-vm.sh create my-vm      # add --cpus / --mem / --ip to override
+./docker-vm.sh create my-vm --start   # --cpus / --mem / --ip override defaults
+./docker-vm.sh stop my-vm             # keeps the machine; `delete` removes it
 ./docker-vm.sh start my-vm
-./docker-vm.sh stop my-vm        # keeps the machine; `delete` is what removes it
 ```
 
 `create` makes the network if needed, copies the template into `my-vm/`, fills
@@ -52,11 +52,12 @@ in the container name, hostname and a free address, authorises the host's SSH
 identities (`~/.ssh/id_*.pub`, whichever exist) for the `ubuntu` user, and puts
 the name within this host's reach. With no identity to authorise it offers to
 run `ssh-keygen` for you; pass `--key FILE` — repeatable — to authorise other
-public keys instead. It does not start the VM; `start` does that, building the
-runner image first on a host that does not have it yet. A name takes lower-case
-letters, digits, `-` and `_` and starts with a letter or a digit, which is what
-keeps the directory, the Compose project and the VM's volume going by one
-spelling.
+public keys instead. It leaves the VM stopped unless `--start` is given, which
+hands it straight to `start` — the same command that brings up a VM already
+here, building the runner image first on a host that does not have it yet. A
+name takes lower-case letters, digits, `-` and `_` and starts with a letter or
+a digit, which is what keeps the directory, the Compose project and the VM's
+volume going by one spelling.
 
 ## Reaching a VM from the host
 
@@ -87,9 +88,9 @@ markers:
 
 ```
 # BEGIN docker-vm.sh
-# Written by `docker-vm.sh sync` from the instance directories. What sits
-# between these markers is replaced whole; what sits outside them is
-# left alone.
+# Written by `docker-vm.sh sync` from the instance directories.
+# What sits between these markers is replaced whole; what sits
+# outside them is left alone.
 172.28.1.10	my-vm
 # END docker-vm.sh
 ```

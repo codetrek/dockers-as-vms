@@ -5,6 +5,9 @@
 
 source scripts/net.sh
 source scripts/sync.sh
+# For --start, which hands the VM straight to the command that brings one up
+# rather than repeating what it does.
+source scripts/start.sh
 
 # Docker allocates dynamic addresses from the bottom of the pool, so static
 # assignments start higher up to stay clear of them.
@@ -24,7 +27,7 @@ new_type=ed25519
 
 function usage_create() {
     cat <<EOF
-Usage: $0 create <name> [--ip ADDR] [--cpus N] [--mem SIZE] [--key FILE]
+Usage: $0 create <name> [--ip ADDR] [--cpus N] [--mem SIZE] [--key FILE] [--start]
 
   <name>       VM name, used as the directory, container name and hostname
   --ip ADDR    static address on the shared bridge (default: lowest free host
@@ -35,6 +38,7 @@ Usage: $0 create <name> [--ip ADDR] [--cpus N] [--mem SIZE] [--key FILE]
   --key FILE   public key to authorise for the ubuntu user, repeatable
                (default: the host's own SSH identities, ~/.ssh/id_*.pub, with
                an offer to generate one when the host has none)
+  --start      bring the VM up once it is made, instead of leaving that to you
 EOF
 }
 
@@ -103,7 +107,7 @@ function host_pubkeys() {
 }
 
 function cmd_create() {
-    local name='' addr='' cpus='' mem=''
+    local name='' addr='' cpus='' mem='' start=''
     local keys=()
     local key new_key ssh_dir
 
@@ -113,6 +117,7 @@ function cmd_create() {
             --cpus) cpus=$2; shift 2;;
             --mem) mem=$2; shift 2;;
             --key) keys+=("$2"); shift 2;;
+            --start) start=1; shift;;
             -h|--help) usage_create; return 0;;
             -*) echo "Unknown option: $1" >&2; usage_create >&2; return 1;;
             *) if [ -n "$name" ]; then
@@ -275,8 +280,15 @@ Created $name/
   cpus      $cpus
   memory    $mem
   ssh keys  ${keys[*]}
-  reachable ssh $name, ping $name -- once it is up
-
-Start it with: $0 start $name
+  reachable ssh $name, ping $name
 EOF
+
+    if [ -z "$start" ]; then
+        echo
+        echo "Start it with: $0 start $name"
+        return 0
+    fi
+
+    echo
+    cmd_start "$name"
 }
