@@ -24,7 +24,11 @@ services:
     - ./data/home:/home:rw
     - ./data/local:/usr/local:rw
     - ./data/opt:/opt:rw
-    - ../scripts:/home/ubuntu/scripts:ro
+    # Read from where the template keeps them rather than from a copy of their
+    # own, so that fixing an installer reaches the VMs that already exist. The
+    # path is relative to the instance directory this file gets copied into,
+    # which is a sibling of template/.
+    - ../template/scripts:/home/ubuntu/scripts:ro
     tmpfs:
     - /tmp:rw,nosuid,nodev,exec,mode=1777
     - /run
@@ -33,7 +37,7 @@ services:
       TZ: Asia/Shanghai
 
 networks:
-  # Shared by every VM, created by ../vmnet.sh before the first `compose up`.
+  # Shared by every VM, created by ../vm.sh before the first `compose up`.
   vmnet:
     external: true
     name: vms_vmnet

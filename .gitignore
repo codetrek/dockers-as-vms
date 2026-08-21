@@ -3,9 +3,7 @@
 !.gitignore
 !LICENSE
 !README.md
-!create_vm.sh
-!delete_vm.sh
-!vmnet.sh
+!vm.sh
 
 !runner-image
 !runner-image/**
@@ -15,4 +13,3 @@
 
 !template
 !template/**
-
