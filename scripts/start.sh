@@ -1,6 +1,6 @@
-# Sourced by vm.sh. Brings a VM up. Compose is given the same pinned project
-# and file that delete uses, so a stray COMPOSE_PROJECT_NAME or COMPOSE_FILE in
-# the environment cannot aim it at another stack.
+# Sourced by docker-vm.sh. Brings a VM up. Compose is given the same pinned
+# project and file that delete uses, so a stray COMPOSE_PROJECT_NAME or
+# COMPOSE_FILE in the environment cannot aim it at another stack.
 
 function usage_start() {
     cat <<EOF

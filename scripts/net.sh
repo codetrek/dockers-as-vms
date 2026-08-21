@@ -1,6 +1,6 @@
 # The shared network: what it is called, how it is addressed, and how it is put
-# up. Sourced by vm.sh for the `net` command and by create.sh, which lays its
-# VMs out inside this address plan. Runs on the host, not inside a VM.
+# up. Sourced by docker-vm.sh for the `net` command and by create.sh, which
+# lays its VMs out inside this address plan. Runs on the host, not inside a VM.
 #
 # Every VM attaches to one shared bridge so the VMs can reach each other by a
 # stable address. Compose cannot own that network: a project holding only a

@@ -3,7 +3,7 @@
 !.gitignore
 !LICENSE
 !README.md
-!vm.sh
+!docker-vm.sh
 
 !runner-image
 !runner-image/**

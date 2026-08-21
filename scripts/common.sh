@@ -1,6 +1,6 @@
-# Sourced by vm.sh. What every command needs to know about this directory: the
-# names that belong to the repository rather than to a VM, the shape a VM name
-# has to take, and how to read the instances back off the disk.
+# Sourced by docker-vm.sh. What every command needs to know about this
+# directory: the names that belong to the repository rather than to a VM, the
+# shape a VM name has to take, and how to read the instances back off the disk.
 
 # The repository's own directories, plus the name the repository itself goes by
 # as a Compose project. A VM named after this directory would take that project

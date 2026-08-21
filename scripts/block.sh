@@ -3,15 +3,15 @@
 # what we put there is fenced between two markers and rewritten whole, and
 # everything outside the fence is passed through untouched.
 
-block_begin="# BEGIN vm.sh"
-block_end="# END vm.sh"
+block_begin="# BEGIN docker-vm.sh"
+block_end="# END docker-vm.sh"
 
 # The block, given its lines as an argument.
 function block() {
     echo "$block_begin"
-    echo "# Written by \`vm.sh sync\` from the instance directories. What sits"
-    echo "# between these markers is replaced whole; what sits outside them is"
-    echo "# left alone."
+    echo "# Written by \`docker-vm.sh sync\` from the instance directories."
+    echo "# What sits between these markers is replaced whole; what sits"
+    echo "# outside them is left alone."
 
     if [ -n "$1" ]; then
         printf '%s\n' "$1"

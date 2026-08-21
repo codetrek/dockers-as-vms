@@ -1,6 +1,6 @@
-# Sourced by vm.sh. What VMs are here, and what state each is in. Everything
-# comes off the disk and out of Docker, so a VM that has never been started
-# lists the same as one that is up.
+# Sourced by docker-vm.sh. What VMs are here, and what state each is in.
+# Everything comes off the disk and out of Docker, so a VM that has never been
+# started lists the same as one that is up.
 
 function usage_ls() {
     cat <<EOF

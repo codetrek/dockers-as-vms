@@ -1,7 +1,7 @@
-# Sourced by vm.sh. Creates a VM instance from template/: ensures the shared
-# bridge exists, copies the skeleton, fills in the compose placeholders with a
-# free address, authorises the host's SSH keys for logging in, and puts the VM's
-# name within reach of this host. Starting it is left to the caller.
+# Sourced by docker-vm.sh. Creates a VM instance from template/: ensures the
+# shared bridge exists, copies the skeleton, fills in the compose placeholders
+# with a free address, authorises the host's SSH keys for logging in, and puts
+# the VM's name within reach of this host. Starting it is left to the caller.
 
 source scripts/net.sh
 source scripts/sync.sh

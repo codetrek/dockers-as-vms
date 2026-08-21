@@ -1,6 +1,6 @@
-# Sourced by vm.sh. Puts what this host keeps about the VMs back in step with
-# the VMs that are actually here: their block in /etc/hosts, their block in
-# ~/.ssh/config, and each instance's own ssh settings.
+# Sourced by docker-vm.sh. Puts what this host keeps about the VMs back in step
+# with the VMs that are actually here: their block in /etc/hosts, their block
+# in ~/.ssh/config, and each instance's own ssh settings.
 #
 # Everything it writes is derived from the instance directories, so it is the
 # same work whether a VM has just been made, has just been taken away, or

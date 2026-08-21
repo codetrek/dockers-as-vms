@@ -51,7 +51,7 @@ function write_ssh_fragment() {
     mapfile -t identities < <(instance_identities "$name" "$keys")
 
     {
-        echo "# Written by \`vm.sh sync\`; goes away with the instance directory."
+        echo "# Written by \`docker-vm.sh sync\`; goes with the instance directory."
         # Both spellings, so that reaching the VM by address also gets the
         # known_hosts below rather than whatever an earlier tenant of that
         # address left behind in the shared one.

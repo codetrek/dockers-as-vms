@@ -36,7 +36,7 @@ services:
       TZ: Asia/Shanghai
 
 networks:
-  # Shared by every VM, created by ../vm.sh before the first `compose up`.
+  # Shared by every VM, made by ../docker-vm.sh before the first `compose up`.
   vmnet:
     external: true
     name: vms_vmnet

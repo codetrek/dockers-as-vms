@@ -1,6 +1,6 @@
-# Sourced by vm.sh. Everything this repository and this host know about one VM,
-# gathered in one place: what it was made with, what Docker has done with it,
-# and how to reach it.
+# Sourced by docker-vm.sh. Everything this repository and this host know about
+# one VM, gathered in one place: what it was made with, what Docker has done
+# with it, and how to reach it.
 
 function usage_show() {
     cat <<EOF

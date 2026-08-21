@@ -6,25 +6,25 @@ host through bind mounts, so a VM survives being rebuilt from the image.
 
 ## Layout
 
-| Path            | Purpose                                                             |
-| --------------- | ------------------------------------------------------------------- |
-| `vm.sh`         | The one entry point: every command below is a subcommand of it       |
-| `scripts/`      | The commands themselves, and what they have in common               |
-| `runner-image/` | The image all VMs share: systemd, sshd, docker-ce, dev tooling      |
-| `template/`     | Skeleton copied for each new VM, toolchain installers included      |
-| `<instance>/`   | One directory per VM: its Compose file, `data/`, `scripts/`, ssh settings |
+| Path            | Purpose                                                    |
+| --------------- | ---------------------------------------------------------- |
+| `docker-vm.sh`  | The one entry point; everything below is a subcommand      |
+| `scripts/`      | The commands themselves, and what they have in common      |
+| `runner-image/` | The image all VMs share: systemd, sshd, docker-ce, tooling |
+| `template/`     | Skeleton copied for each new VM, installers included       |
+| `<instance>/`   | One VM: Compose file, `data/`, `scripts/`, ssh settings    |
 
-`vm.sh` sources its commands rather than running them, so that a command and
-the definitions it leans on — the shape of a VM name, the directories that
-belong to this repository rather than to a VM, the bridge's name and its
-address plan — share one process and one spelling. Instance directories are not
-tracked: `.gitignore` allowlists only the entries above.
+`docker-vm.sh` sources its commands rather than running them, so that a
+command and the definitions it leans on — the shape of a VM name, the
+directories that belong to this repository rather than to a VM, the bridge's
+name and its address plan — share one process and one spelling. Instance
+directories are not tracked: `.gitignore` allowlists only the entries above.
 
 ## Looking at what is here
 
 ```sh
-./vm.sh ls
-./vm.sh show my-vm
+./docker-vm.sh ls
+./docker-vm.sh show my-vm
 ```
 
 ```
@@ -42,8 +42,8 @@ out again, since what is in the file is what ssh will do.
 ## Creating a VM
 
 ```sh
-./vm.sh create my-vm                       # add --cpus / --mem / --ip to override
-./vm.sh start my-vm
+./docker-vm.sh create my-vm      # add --cpus / --mem / --ip to override
+./docker-vm.sh start my-vm
 ```
 
 `create` makes the network if needed, copies the template into `my-vm/`, fills
@@ -67,11 +67,11 @@ ping my-vm
 curl http://my-vm:3000
 ```
 
-Three things make that work, and all three are written by `vm.sh sync`, which
-`create` and `delete` call for you:
+Three things make that work, and all three are written by `docker-vm.sh sync`,
+which `create` and `delete` call for you:
 
 ```sh
-./vm.sh sync                               # after editing an instance by hand
+./docker-vm.sh sync              # after editing an instance by hand
 ```
 
 `sync` reads the instance directories and rewrites everything from them. There
@@ -85,12 +85,12 @@ What it writes into `/etc/hosts` and `~/.ssh/config` is fenced between two
 markers:
 
 ```
-# BEGIN vm.sh
-# Written by `vm.sh sync` from the instance directories. What sits
+# BEGIN docker-vm.sh
+# Written by `docker-vm.sh sync` from the instance directories. What sits
 # between these markers is replaced whole; what sits outside them is
 # left alone.
 172.28.1.10	my-vm
-# END vm.sh
+# END docker-vm.sh
 ```
 
 Everything outside the markers is passed through untouched; everything between
@@ -134,7 +134,7 @@ it is not something the host can reach.
 ## Deleting a VM
 
 ```sh
-./vm.sh delete my-vm                       # add --yes to skip the confirmation
+./docker-vm.sh delete my-vm      # add --yes to skip the confirmation
 ```
 
 `delete` takes the container down, removes the `my-vm_docker-disk` volume
@@ -156,10 +156,11 @@ those away too.
 
 All VMs sit on the `vms_vmnet` bridge (`172.28.1.0/24`, gateway `172.28.1.1`),
 so they reach each other at fixed addresses. Compose treats it as `external`
-because a project declaring only networks is a no-op for `compose up`; `vm.sh`
-owns it instead. `create` puts it up by itself, and `./vm.sh net` does the same
-thing on its own. Addresses `.2`–`.9` are left to Docker's dynamic pool, static
-assignments start at `.10`. To see what is taken:
+because a project declaring only networks is a no-op for `compose up`;
+`docker-vm.sh` owns it instead. `create` puts it up by itself, and
+`./docker-vm.sh net` does the same thing on its own. Addresses `.2`–`.9` are
+left to Docker's dynamic pool, static assignments start at `.10`. To see what
+is taken:
 
 ```sh
 docker network inspect vms_vmnet -f '{{range .Containers}}{{.Name}} {{.IPv4Address}}{{"\n"}}{{end}}'

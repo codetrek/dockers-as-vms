@@ -1,7 +1,7 @@
-# Sourced by vm.sh. Undoes create: takes away the VM's container and the volume
-# holding its Docker disk, removes the instance directory, and takes the VM's
-# name back off this host. What the VMs share -- the bridge, the runner image,
-# the template -- is left alone.
+# Sourced by docker-vm.sh. Undoes create: takes away the VM's container and the
+# volume holding its Docker disk, removes the instance directory, and takes the
+# VM's name back off this host. What the VMs share -- the bridge, the runner
+# image, the template -- is left alone.
 
 source scripts/sync.sh
 
