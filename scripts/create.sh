@@ -1,9 +1,11 @@
 # Sourced by vm.sh. Creates a VM instance from template/: ensures the shared
 # bridge exists, copies the skeleton, fills in the compose placeholders with a
-# free address, and authorises the host's SSH keys for logging in. Starting it
-# is left to the caller.
+# free address, authorises the host's SSH keys for logging in, and puts the VM's
+# name within reach of this host. Starting it is left to the caller.
 
 source scripts/net.sh
+source scripts/hosts.sh
+source scripts/ssh.sh
 
 # Docker allocates dynamic addresses from the bottom of the pool, so static
 # assignments start higher up to stay clear of them.
@@ -136,6 +138,8 @@ function cmd_create() {
         return 1
     fi
 
+    check_hosts_free "$name" || return 1
+
     # The prompts below re-ask when what they get back makes no sense; what came
     # in on the command line has to be turned away here instead, before any of
     # it ends up in an instance directory.
@@ -194,7 +198,13 @@ function cmd_create() {
         fi
     done
 
+    # The two things a VM needs to already be there, neither of them its own:
+    # the bridge it attaches to, and this repository's line in the ssh config.
+    # Both are idempotent, and putting them up here rather than at the end
+    # keeps a create that comes apart later from having been the run that would
+    # have made them.
     ensure_network
+    ensure_ssh_include
 
     if [ -z "$addr" ]; then
         addr=$(free_addr)
@@ -263,6 +273,12 @@ function cmd_create() {
 
     (cd "$name" && docker compose config >/dev/null)
 
+    # Written last, and in this order: the fragment sits inside the instance
+    # and goes when it does, so the /etc/hosts line -- the only mark left
+    # outside it -- is the very last thing to appear.
+    write_ssh_fragment "$name" "$addr" "${keys[@]}"
+    set_host_entry "$name" "$addr"
+
     cat <<EOF
 
 Created $name/
@@ -272,6 +288,7 @@ Created $name/
   cpus      $cpus
   memory    $mem
   ssh keys  ${keys[*]}
+  reachable ssh $name, ping $name -- once it is up
 
 Start it with: cd $name && docker compose up -d
 EOF

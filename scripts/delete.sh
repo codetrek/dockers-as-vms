@@ -1,6 +1,10 @@
 # Sourced by vm.sh. Undoes create: takes away the VM's container and the volume
-# holding its Docker disk, then removes the instance directory. What the VMs
-# share -- the bridge, the runner image, the template -- is left alone.
+# holding its Docker disk, removes the instance directory, and takes the VM's
+# name back off this host. What the VMs share -- the bridge, the runner image,
+# the template -- is left alone.
+
+source scripts/hosts.sh
+source scripts/ssh.sh
 
 function usage_delete() {
     cat <<EOF
@@ -52,7 +56,7 @@ function as_owner() {
 
 function cmd_delete() {
     local name='' assume_yes='' addr='' answer=''
-    local containers volumes size id labelled volume
+    local containers volumes entry size id labelled volume
 
     while [ $# -gt 0 ]; do
         case $1 in
@@ -90,9 +94,10 @@ function cmd_delete() {
 
     containers=$(vm_containers "$name")
     volumes=$(vm_volumes "$name")
+    entry=$(host_entry "$name")
 
-    if [ ! -d "$name" ] && [ -z "$containers" ] && [ -z "$volumes" ]; then
-        echo "Nothing called $name here: no directory, no container, no volume." >&2
+    if [ ! -d "$name" ] && [ -z "$containers" ] && [ -z "$volumes" ] && [ -z "$entry" ]; then
+        echo "Nothing called $name here: no directory, no container, no volume, no host entry." >&2
         return 1
     fi
 
@@ -138,6 +143,18 @@ function cmd_delete() {
             [ -n "$volume" ] || continue
             printf '  volume     %s\n' "$volume"
         done <<<"$volumes"
+
+        if [ -n "$entry" ]; then
+            if [ -z "$addr" ]; then
+                # The entry carries the address too, which is where it has to
+                # come from once the directory that recorded it is gone --
+                # exactly the case this sweep exists for.
+                addr=$(awk '{print $1}' <<<"$entry")
+            fi
+            # The written line is laid out with tabs; squeezed here so it lines
+            # up with the rows above rather than against its own columns.
+            printf '  hosts      %s\n' "$(tr -s '[:blank:]' ' ' <<<"$entry")"
+        fi
 
         echo
     } >&2
@@ -193,6 +210,13 @@ function cmd_delete() {
     if [ -d "$name" ]; then
         as_owner "$name" rm -rf "$name"
     fi
+
+    # The instance's ssh fragment and its known_hosts went with the directory.
+    # What is left is on the host: the line answering to the name, and whatever
+    # the shared known_hosts remembers about a name and an address that are
+    # both about to belong to somebody else.
+    drop_host_entry "$name"
+    forget_host_keys "$name" "$addr"
 
     echo
     if [ -n "$addr" ]; then
