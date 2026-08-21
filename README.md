@@ -8,7 +8,7 @@ host through bind mounts, so a VM survives being rebuilt from the image.
 
 | Path            | Purpose                                                             |
 | --------------- | ------------------------------------------------------------------- |
-| `vm.sh`         | The one entry point: `create`, `delete`, `net`, `sync`              |
+| `vm.sh`         | The one entry point: every command below is a subcommand of it       |
 | `scripts/`      | The commands themselves, and what they have in common               |
 | `runner-image/` | The image all VMs share: systemd, sshd, docker-ce, dev tooling      |
 | `template/`     | Skeleton copied for each new VM, and the installers every VM mounts  |
@@ -20,11 +20,30 @@ belong to this repository rather than to a VM, the bridge's name and its
 address plan — share one process and one spelling. Instance directories are not
 tracked: `.gitignore` allowlists only the entries above.
 
+## Looking at what is here
+
+```sh
+./vm.sh ls
+./vm.sh show my-vm
+```
+
+```
+NAME           ADDRESS      CPUS  MEMORY  STATUS
+borgee-dev-vm  172.28.1.3   4     8g      Up 7 days
+my-vm          172.28.1.12  2     4g      not created
+```
+
+`ls` reads the instances' Compose files and asks Docker about their containers,
+so a VM that has never been started lists like any other. `show` adds what one
+VM's disk costs, the volume holding its own Docker storage, and the ssh
+settings that reach it — which are read back out of the file rather than worked
+out again, since what is in the file is what ssh will do.
+
 ## Creating a VM
 
 ```sh
 ./vm.sh create my-vm                       # add --cpus / --mem / --ip to override
-cd my-vm && docker compose up -d --build
+./vm.sh start my-vm
 ```
 
 `create` makes the network if needed, copies the template into `my-vm/`, fills
@@ -32,9 +51,11 @@ in the container name, hostname and a free address, authorises the host's SSH
 identities (`~/.ssh/id_*.pub`, whichever exist) for the `ubuntu` user, and puts
 the name within this host's reach. With no identity to authorise it offers to
 run `ssh-keygen` for you; pass `--key FILE` — repeatable — to authorise other
-public keys instead. It does not start the VM. A name takes lower-case letters,
-digits, `-` and `_` and starts with a letter or a digit, which is what keeps the
-directory, the Compose project and the VM's volume going by one spelling.
+public keys instead. It does not start the VM; `start` does that, building the
+runner image first on a host that does not have it yet. A name takes lower-case
+letters, digits, `-` and `_` and starts with a letter or a digit, which is what
+keeps the directory, the Compose project and the VM's volume going by one
+spelling.
 
 `template/scripts/` is the one part of the template an instance does not get a
 copy of; see below.

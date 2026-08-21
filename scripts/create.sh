@@ -282,6 +282,6 @@ Created $name/
   ssh keys  ${keys[*]}
   reachable ssh $name, ping $name -- once it is up
 
-Start it with: cd $name && docker compose up -d
+Start it with: $0 start $name
 EOF
 }

@@ -16,7 +16,10 @@ function usage() {
     cat <<EOF
 Usage: $0 <command> [args]
 
+  ls                        list the VMs, their addresses and their state
+  show <name>               everything known about one VM
   create <name> [options]   create a VM from the template
+  start <name>              bring a VM up
   delete <name> [--yes]     delete a VM and everything it owns
   net                       create the bridge the VMs share
   sync                      rewrite what this host keeps about the VMs
@@ -36,7 +39,10 @@ shift
 source scripts/common.sh
 
 case $cmd in
+    ls) source scripts/ls.sh; cmd_ls "$@";;
+    show) source scripts/show.sh; cmd_show "$@";;
     create) source scripts/create.sh; cmd_create "$@";;
+    start) source scripts/start.sh; cmd_start "$@";;
     delete) source scripts/delete.sh; cmd_delete "$@";;
     net) source scripts/net.sh; cmd_net "$@";;
     sync) source scripts/sync.sh; cmd_sync "$@";;

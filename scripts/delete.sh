@@ -14,27 +14,6 @@ Usage: $0 delete <name> [--yes]
 EOF
 }
 
-# What makes a container ours is the instance directory Compose rooted its
-# project at, which is what this label records. A container merely going by the
-# same name belongs to somebody else's project, and a host runs plenty of those.
-function vm_containers() {
-    docker ps -aq --filter "label=com.docker.compose.project.working_dir=$PWD/$1"
-}
-
-# Compose labels a volume with its project but never with a path, so this one
-# cannot be tied back to the instance directory the way a container can. Going
-# by the name the template's key produces is what still finds the disk of an
-# instance whose directory and container are both already gone -- the state
-# every stray `*_docker-disk` volume on a long-lived host is in -- and it takes
-# a stranger's project to both go by this VM's name and declare a volume keyed
-# `docker-disk` to be mistaken for one. Whatever matches is listed for
-# confirmation before anything happens to it.
-function vm_volumes() {
-    docker volume ls -q \
-        --filter "label=com.docker.compose.project=$1" \
-        --filter "name=^${1}_docker-disk$"
-}
-
 function cmd_delete() {
     local name='' assume_yes='' addr='' answer=''
     local containers volumes size id labelled volume
@@ -73,8 +52,8 @@ function cmd_delete() {
         return 1
     fi
 
-    containers=$(vm_containers "$name")
-    volumes=$(vm_volumes "$name")
+    containers=$(instance_containers "$name")
+    volumes=$(instance_volumes "$name")
 
     if [ -d "$name" ]; then
         addr=$(instance_addr "$name")
@@ -106,7 +85,9 @@ function cmd_delete() {
 
     # The listing is what the question below is asking about, so both go to the
     # terminal together; redirecting the command's output must not leave a bare
-    # "delete all of it?" behind.
+    # "delete all of it?" behind. The volume is matched by name rather than by
+    # the path the container carries, so it is listed here for the same reason
+    # the rest is: nothing goes without having been shown first.
     {
         echo "About to delete $name"
 
@@ -168,8 +149,8 @@ function cmd_delete() {
     # running and taking up room -- that is how a long-lived host ends up with
     # stray `*_docker-disk` volumes -- so sweep up whatever else belongs to the
     # instance. Read afresh, now that Compose has taken its own share away.
-    containers=$(vm_containers "$name")
-    volumes=$(vm_volumes "$name")
+    containers=$(instance_containers "$name")
+    volumes=$(instance_volumes "$name")
 
     while read -r id; do
         [ -n "$id" ] || continue

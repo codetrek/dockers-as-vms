@@ -55,10 +55,45 @@ function instances() {
     done
 }
 
+# A scalar an instance's compose file states. Read from the file rather than
+# from Docker, because these answer for a VM that has never been started and
+# for one that is down, which is when they are most wanted.
+function instance_field() {
+    sed -n "s/^ *$2: *\"\?\([^\"]*\)\"\?.*/\1/p" "$1/docker-compose.yml"
+}
+
 # The address create wrote into an instance's compose file, which is the only
 # record of it once the container is down.
 function instance_addr() {
-    sed -n 's/^ *ipv4_address: *"\?\([0-9.]*\).*/\1/p' "$1/docker-compose.yml"
+    instance_field "$1" ipv4_address
+}
+
+# What makes a container ours is the instance directory Compose rooted its
+# project at, which is what this label records. A container merely going by the
+# same name belongs to somebody else's project, and a host runs plenty of those.
+function instance_containers() {
+    docker ps -aq --filter "label=com.docker.compose.project.working_dir=$PWD/$1"
+}
+
+# What Docker says about it, or nothing at all when the VM has never been
+# brought up.
+function instance_status() {
+    docker ps -a \
+        --filter "label=com.docker.compose.project.working_dir=$PWD/$1" \
+        --format '{{.Status}}'
+}
+
+# Compose labels a volume with its project but never with a path, so this one
+# cannot be tied back to the instance directory the way a container can. Going
+# by the name the template's key produces is what still finds the disk of an
+# instance whose directory and container are both already gone -- the state
+# every stray `*_docker-disk` volume on a long-lived host is in -- and it takes
+# a stranger's project to both go by this VM's name and declare a volume keyed
+# `docker-disk` to be mistaken for one.
+function instance_volumes() {
+    docker volume ls -q \
+        --filter "label=com.docker.compose.project=$1" \
+        --filter "name=^${1}_docker-disk$"
 }
 
 # The bind-mount targets Docker creates belong to root, so reading what is
