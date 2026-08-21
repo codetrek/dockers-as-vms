@@ -20,6 +20,7 @@ Usage: $0 <command> [args]
   show <name>               everything known about one VM
   create <name> [options]   create a VM from the template
   start <name>              bring a VM up
+  stop <name>               take a VM down, keeping it
   delete <name> [--yes]     delete a VM and everything it owns
   net                       create the bridge the VMs share
   sync                      rewrite what this host keeps about the VMs
@@ -43,6 +44,7 @@ case $cmd in
     show) source scripts/show.sh; cmd_show "$@";;
     create) source scripts/create.sh; cmd_create "$@";;
     start) source scripts/start.sh; cmd_start "$@";;
+    stop) source scripts/stop.sh; cmd_stop "$@";;
     delete) source scripts/delete.sh; cmd_delete "$@";;
     net) source scripts/net.sh; cmd_net "$@";;
     sync) source scripts/sync.sh; cmd_sync "$@";;

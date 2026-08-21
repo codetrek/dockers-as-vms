@@ -114,3 +114,17 @@ function as_owner() {
         "$@"
     fi
 }
+
+# The VM a command was pointed at has to be one that is here. Delete does not
+# use this: it also answers for an instance whose directory was removed by
+# hand, leaving a container or a volume behind.
+function check_instance() {
+    local name=$1
+
+    check_name "$name" || return 1
+
+    if [ ! -f "$name/docker-compose.yml" ]; then
+        echo "$name is not a VM here; \`$0 ls\` lists the ones that are." >&2
+        return 1
+    fi
+}

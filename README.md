@@ -44,6 +44,7 @@ out again, since what is in the file is what ssh will do.
 ```sh
 ./docker-vm.sh create my-vm      # add --cpus / --mem / --ip to override
 ./docker-vm.sh start my-vm
+./docker-vm.sh stop my-vm        # keeps the machine; `delete` is what removes it
 ```
 
 `create` makes the network if needed, copies the template into `my-vm/`, fills

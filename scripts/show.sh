@@ -31,12 +31,7 @@ function cmd_show() {
         return 1
     fi
 
-    check_name "$name" || return 1
-
-    if [ ! -f "$name/docker-compose.yml" ]; then
-        echo "$name is not a VM here; \`$0 ls\` lists the ones that are." >&2
-        return 1
-    fi
+    check_instance "$name" || return 1
 
     status=$(instance_status "$name")
     if [ -z "$status" ]; then

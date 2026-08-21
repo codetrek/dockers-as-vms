@@ -31,12 +31,7 @@ function cmd_start() {
         return 1
     fi
 
-    check_name "$name" || return 1
-
-    if [ ! -f "$name/docker-compose.yml" ]; then
-        echo "$name is not a VM here; \`$0 ls\` lists the ones that are." >&2
-        return 1
-    fi
+    check_instance "$name" || return 1
 
     # Compose builds the image itself when this host has none, so a VM taken
     # from a fresh clone comes up on the same command as one that has run
