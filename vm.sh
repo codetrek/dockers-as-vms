@@ -19,6 +19,7 @@ Usage: $0 <command> [args]
   create <name> [options]   create a VM from the template
   delete <name> [--yes]     delete a VM and everything it owns
   net                       create the bridge the VMs share
+  sync                      rewrite what this host keeps about the VMs
 
 Run \`$0 <command> --help\` for a command's own options.
 EOF
@@ -38,6 +39,7 @@ case $cmd in
     create) source scripts/create.sh; cmd_create "$@";;
     delete) source scripts/delete.sh; cmd_delete "$@";;
     net) source scripts/net.sh; cmd_net "$@";;
+    sync) source scripts/sync.sh; cmd_sync "$@";;
     -h|--help) usage;;
     *) echo "Unknown command: $cmd" >&2; usage >&2; exit 1;;
 esac

@@ -8,7 +8,7 @@ host through bind mounts, so a VM survives being rebuilt from the image.
 
 | Path            | Purpose                                                             |
 | --------------- | ------------------------------------------------------------------- |
-| `vm.sh`         | The one entry point: `create`, `delete`, `net`                      |
+| `vm.sh`         | The one entry point: `create`, `delete`, `net`, `sync`              |
 | `scripts/`      | The commands themselves, and what they have in common               |
 | `runner-image/` | The image all VMs share: systemd, sshd, docker-ce, dev tooling      |
 | `template/`     | Skeleton copied for each new VM, and the installers every VM mounts  |
@@ -49,26 +49,55 @@ ping my-vm
 curl http://my-vm:3000
 ```
 
-Two things make that work. `create` writes both; `delete` takes back everything
-that names a particular VM, and leaves behind only the one repository-wide
-`Include` line described below.
+Three things make that work, and all three are written by `vm.sh sync`, which
+`create` and `delete` call for you:
 
-`<instance>/ssh_config` carries the VM's `HostName`, `User ubuntu`, the private
-half of whichever key was authorised, and a `known_hosts` of its own. It is
-reached through a single line that `create` puts at the **top** of
-`~/.ssh/config`:
-
-```
-Include /path/to/this/repository/*/ssh_config
+```sh
+./vm.sh sync                               # after editing an instance by hand
 ```
 
-The position is not cosmetic. ssh keeps the first value it obtains for an
-option, so an include landing after anything else the file states would lose to
-it — and what sits at the top of an ssh config is often exactly the settings
-that apply to everything, up to and including `UserKnownHostsFile /dev/null`.
-`create` refuses rather than write a second copy if it finds the line further
-down. The line itself is repository-wide and stays once written; only the
-per-VM fragments come and go.
+`sync` reads the instance directories and rewrites everything from them. There
+is no adding a line here and taking one away there — the host's view of the VMs
+is a function of the directories that exist, so the same code produces it
+whether a VM has just been made, has just been taken away, or somebody edited a
+file by hand. That is also what makes it a repair: run it and the files are
+right again.
+
+What it writes into `/etc/hosts` and `~/.ssh/config` is fenced between two
+markers:
+
+```
+# BEGIN vm.sh
+# Written by `vm.sh sync` from the instance directories. What sits
+# between these markers is replaced whole; what sits outside them is
+# left alone.
+172.28.1.10	my-vm
+# END vm.sh
+```
+
+Everything outside the markers is passed through untouched; everything between
+them is replaced. A block whose end marker has been deleted by hand would
+swallow the rest of the file, so that stops the run instead.
+
+The `/etc/hosts` block is what answers `ping` and `curl` — this host reads
+`files` before `dns`, and there is no DNS these names could come from. It is
+the only thing written outside the instance directories that needs root.
+`create` refuses a name that something outside the block already answers to,
+rather than shadowing it.
+
+The `~/.ssh/config` block holds one `Include` line pointing at the instance
+directories, and `sync` puts it at the **top** of the file, moving it back
+there if it has wandered. The position is not cosmetic: ssh keeps the first
+value it obtains for an option, and what sits at the top of an ssh config is
+often exactly the settings meant for everything, up to and including a bare
+`UserKnownHostsFile /dev/null`.
+
+`<instance>/ssh_config` is what that include reaches: the VM's `HostName`,
+`User ubuntu`, the private half of whichever key it authorises, and a
+`known_hosts` of its own. `sync` matches the keys in
+`<instance>/data/home/ubuntu/.ssh/authorized_keys` against the ones under
+`~/.ssh` by fingerprint, so it can rebuild a fragment it did not write rather
+than having to remember what `create` chose.
 
 The per-VM `known_hosts` keeps the shared file from collecting entries for
 addresses that `delete` hands straight back to the pool, and lets a VM's
@@ -78,13 +107,6 @@ presents the same sshd host key, baked into `vm-runner:ubuntu.24.04` when
 key several times over. It becomes worth what it costs once the image stops
 carrying one. `delete` also runs `ssh-keygen -R` over the shared file for the
 name and the address, clearing what was remembered before any of this existed.
-
-One line in `/etc/hosts`, marked with the VM's name, is what answers `ping` and
-`curl` — this host reads `files` before `dns`, and there is no DNS these names
-could come from. It is the only thing written outside the instance directory
-that needs root. Removal keys on the marker, so an entry written by hand for
-the same name is never eaten, and `create` refuses a name the file already
-answers to rather than shadowing it.
 
 Inside the VMs none of this is needed: Docker's own resolver already answers
 `ssh ubuntu@my-other-vm` and `ping my-other-vm` between containers on the

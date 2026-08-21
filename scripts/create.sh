@@ -4,8 +4,7 @@
 # name within reach of this host. Starting it is left to the caller.
 
 source scripts/net.sh
-source scripts/hosts.sh
-source scripts/ssh.sh
+source scripts/sync.sh
 
 # Docker allocates dynamic addresses from the bottom of the pool, so static
 # assignments start higher up to stay clear of them.
@@ -198,13 +197,7 @@ function cmd_create() {
         fi
     done
 
-    # The two things a VM needs to already be there, neither of them its own:
-    # the bridge it attaches to, and this repository's line in the ssh config.
-    # Both are idempotent, and putting them up here rather than at the end
-    # keeps a create that comes apart later from having been the run that would
-    # have made them.
     ensure_network
-    ensure_ssh_include
 
     if [ -z "$addr" ]; then
         addr=$(free_addr)
@@ -273,11 +266,10 @@ function cmd_create() {
 
     (cd "$name" && docker compose config >/dev/null)
 
-    # Written last, and in this order: the fragment sits inside the instance
-    # and goes when it does, so the /etc/hosts line -- the only mark left
-    # outside it -- is the very last thing to appear.
-    write_ssh_fragment "$name" "$addr" "${keys[@]}"
-    set_host_entry "$name" "$addr"
+    # Last, and over every instance rather than just this one: what the host
+    # keeps about the VMs is a function of the directories that are here, and
+    # this run has just changed which those are.
+    sync_host
 
     cat <<EOF
 

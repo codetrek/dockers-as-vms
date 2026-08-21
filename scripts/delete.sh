@@ -3,8 +3,7 @@
 # name back off this host. What the VMs share -- the bridge, the runner image,
 # the template -- is left alone.
 
-source scripts/hosts.sh
-source scripts/ssh.sh
+source scripts/sync.sh
 
 function usage_delete() {
     cat <<EOF
@@ -36,27 +35,9 @@ function vm_volumes() {
         --filter "name=^${1}_docker-disk$"
 }
 
-# The bind-mount targets Docker creates belong to root, so both measuring the
-# instance tree and removing it need more than our own rights.
-function as_owner() {
-    local tree=$1 foreign
-    shift
-
-    # On its own line, so that a failing find stops the run rather than reading
-    # as "the tree is all ours" and sending `rm -rf` in without the rights it
-    # needs -- inside an `if` condition, set -e would not see it.
-    foreign=$(find "$tree" ! -uid "$(id -u)" -print -quit)
-
-    if [ -n "$foreign" ]; then
-        sudo "$@"
-    else
-        "$@"
-    fi
-}
-
 function cmd_delete() {
     local name='' assume_yes='' addr='' answer=''
-    local containers volumes entry size id labelled volume
+    local containers volumes size id labelled volume
 
     while [ $# -gt 0 ]; do
         case $1 in
@@ -94,9 +75,16 @@ function cmd_delete() {
 
     containers=$(vm_containers "$name")
     volumes=$(vm_volumes "$name")
-    entry=$(host_entry "$name")
 
-    if [ ! -d "$name" ] && [ -z "$containers" ] && [ -z "$volumes" ] && [ -z "$entry" ]; then
+    if [ -d "$name" ]; then
+        addr=$(instance_addr "$name")
+    else
+        # The instance directory is where the address is written down; once it
+        # is gone, our own block in /etc/hosts is what still remembers it.
+        addr=$(hosts_addr "$name")
+    fi
+
+    if [ ! -d "$name" ] && [ -z "$containers" ] && [ -z "$volumes" ] && [ -z "$addr" ]; then
         echo "Nothing called $name here: no directory, no container, no volume, no host entry." >&2
         return 1
     fi
@@ -123,12 +111,12 @@ function cmd_delete() {
         echo "About to delete $name"
 
         if [ -d "$name" ]; then
-            addr=$(sed -n 's/^ *ipv4_address: *"\?\([0-9.]*\).*/\1/p' "$name/docker-compose.yml")
             size=$(as_owner "$name" du -sh "$name" | cut -f1)
             printf '  directory  %s (%s)\n' "$PWD/$name" "$size"
-            if [ -n "$addr" ]; then
-                printf '  address    %s\n' "$addr"
-            fi
+        fi
+
+        if [ -n "$addr" ]; then
+            printf '  address    %s\n' "$addr"
         fi
 
         while read -r id; do
@@ -143,18 +131,6 @@ function cmd_delete() {
             [ -n "$volume" ] || continue
             printf '  volume     %s\n' "$volume"
         done <<<"$volumes"
-
-        if [ -n "$entry" ]; then
-            if [ -z "$addr" ]; then
-                # The entry carries the address too, which is where it has to
-                # come from once the directory that recorded it is gone --
-                # exactly the case this sweep exists for.
-                addr=$(awk '{print $1}' <<<"$entry")
-            fi
-            # The written line is laid out with tabs; squeezed here so it lines
-            # up with the rows above rather than against its own columns.
-            printf '  hosts      %s\n' "$(tr -s '[:blank:]' ' ' <<<"$entry")"
-        fi
 
         echo
     } >&2
@@ -211,11 +187,12 @@ function cmd_delete() {
         as_owner "$name" rm -rf "$name"
     fi
 
-    # The instance's ssh fragment and its known_hosts went with the directory.
-    # What is left is on the host: the line answering to the name, and whatever
-    # the shared known_hosts remembers about a name and an address that are
-    # both about to belong to somebody else.
-    drop_host_entry "$name"
+    # The instance's own ssh settings and known_hosts went with its directory.
+    # What is left is on the host: its line among the VMs, which sync takes
+    # away by writing the block without it, and whatever the shared known_hosts
+    # remembers about a name and an address that are both about to belong to
+    # somebody else.
+    sync_host
     forget_host_keys "$name" "$addr"
 
     echo
