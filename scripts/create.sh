@@ -221,12 +221,7 @@ function cmd_create() {
 
     echo "========== creating $name =========="
 
-    # Everything in the template but its scripts, which each VM mounts from
-    # where they sit so that fixing an installer reaches the VMs that already
-    # exist. A copy of them in the instance would sit underneath that mount,
-    # never read and never updated.
-    mkdir "$name"
-    find template -mindepth 1 -maxdepth 1 ! -name scripts -exec cp -r -t "$name" {} +
+    cp -r template "$name"
 
     sed -i \
         -e "s|^\( *\)container_name: .*|\1container_name: $name|" \

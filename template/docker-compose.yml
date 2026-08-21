@@ -24,11 +24,10 @@ services:
     - ./data/home:/home:rw
     - ./data/local:/usr/local:rw
     - ./data/opt:/opt:rw
-    # Read from where the template keeps them rather than from a copy of their
-    # own, so that fixing an installer reaches the VMs that already exist. The
-    # path is relative to the instance directory this file gets copied into,
-    # which is a sibling of template/.
-    - ../template/scripts:/home/ubuntu/scripts:ro
+    # The instance's own copy, taken from the template when it was created, so
+    # that a VM keeps the installers it was made with rather than following the
+    # template as that moves on.
+    - ./scripts:/home/ubuntu/scripts:ro
     tmpfs:
     - /tmp:rw,nosuid,nodev,exec,mode=1777
     - /run

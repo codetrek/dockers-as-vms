@@ -11,8 +11,8 @@ host through bind mounts, so a VM survives being rebuilt from the image.
 | `vm.sh`         | The one entry point: every command below is a subcommand of it       |
 | `scripts/`      | The commands themselves, and what they have in common               |
 | `runner-image/` | The image all VMs share: systemd, sshd, docker-ce, dev tooling      |
-| `template/`     | Skeleton copied for each new VM, and the installers every VM mounts  |
-| `<instance>/`   | One directory per VM: its Compose file, `data/`, and ssh settings   |
+| `template/`     | Skeleton copied for each new VM, toolchain installers included      |
+| `<instance>/`   | One directory per VM: its Compose file, `data/`, `scripts/`, ssh settings |
 
 `vm.sh` sources its commands rather than running them, so that a command and
 the definitions it leans on — the shape of a VM name, the directories that
@@ -56,9 +56,6 @@ runner image first on a host that does not have it yet. A name takes lower-case
 letters, digits, `-` and `_` and starts with a letter or a digit, which is what
 keeps the directory, the Compose project and the VM's volume going by one
 spelling.
-
-`template/scripts/` is the one part of the template an instance does not get a
-copy of; see below.
 
 ## Reaching a VM from the host
 
@@ -180,9 +177,11 @@ install what you need:
 ~/scripts/install_claude.sh
 ```
 
-`~/scripts` is `template/scripts/` mounted read-only, shared by every VM rather
-than copied into each, so a fix to an installer reaches the VMs that already
-exist. `install_golang.sh` unpacks Go into `/usr/local/go`, which `.profile`
+`~/scripts` is the instance's own `scripts/`, copied out of the template when
+the VM was created and mounted read-only. A VM therefore keeps the installers
+it was made with: fixing one in `template/` reaches the VMs made after that,
+and the VMs already here are left as they were until their copy is replaced by
+hand. `install_golang.sh` unpacks Go into `/usr/local/go`, which `.profile`
 only adds to `PATH` at login — log in again after the first run to get `go` on
 your path. `/root`, `/usr/local`, `/opt` and `/home` are bind mounts under the
 instance's `data/`, so everything installed there survives `compose down` and an
