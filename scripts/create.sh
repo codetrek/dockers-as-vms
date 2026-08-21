@@ -36,8 +36,9 @@ Usage: $0 create <name> [--ip ADDR] [--cpus N] [--mem SIZE] [--key FILE] [--star
   --mem SIZE   memory limit with a unit, e.g. 512m or 8g, asked for
                interactively when omitted (default: ${default_mem})
   --key FILE   public key to authorise for the ubuntu user, repeatable
-               (default: the host's own SSH identities, ~/.ssh/id_*.pub, with
-               an offer to generate one when the host has none)
+               (default: the host's own SSH identities -- the ~/.ssh/id_* names
+               ssh(1) tries by itself -- with an offer to generate one when the
+               host has none)
   --start      bring the VM up once it is made, instead of leaving that to you
 EOF
 }
